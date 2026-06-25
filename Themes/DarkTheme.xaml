@@ -1,0 +1,44 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#E61A1A1A"/>
+    <SolidColorBrush x:Key="AppBorderBrush" Color="#33FFFFFF"/>
+    <SolidColorBrush x:Key="TextForegroundBrush" Color="White"/>
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#88FFFFFF"/>
+    <SolidColorBrush x:Key="TextFaintBrush" Color="#44FFFFFF"/>
+    <SolidColorBrush x:Key="ElementBackgroundBrush" Color="#1AFFFFFF"/>
+    <SolidColorBrush x:Key="ElementHoverBrush" Color="#33FFFFFF"/>
+    <SolidColorBrush x:Key="ElementPressedBrush" Color="#4DFFFFFF"/>
+    
+    <Color x:Key="DropShadowColor">#000000</Color>
+
+    <!-- Theme Control Brushes -->
+    <SolidColorBrush x:Key="SearchBackgroundBrush" Color="#1AFFFFFF"/>
+    <SolidColorBrush x:Key="SearchForegroundBrush" Color="White"/>
+    <SolidColorBrush x:Key="SearchBorderBrush" Color="#22FFFFFF"/>
+    <SolidColorBrush x:Key="SearchCaretBrush" Color="White"/>
+    <SolidColorBrush x:Key="SearchFocusedBackgroundBrush" Color="#2AFFFFFF"/>
+    <SolidColorBrush x:Key="SearchFocusedBorderBrush" Color="#55FFFFFF"/>
+
+    <SolidColorBrush x:Key="FilterForegroundBrush" Color="#88FFFFFF"/>
+    <SolidColorBrush x:Key="FilterBorderBrush" Color="#33FFFFFF"/>
+    <SolidColorBrush x:Key="FilterHoverBackgroundBrush" Color="#1AFFFFFF"/>
+    <SolidColorBrush x:Key="FilterHoverForegroundBrush" Color="White"/>
+    <SolidColorBrush x:Key="FilterCheckedBackgroundBrush" Color="#33FFFFFF"/>
+    <SolidColorBrush x:Key="FilterCheckedBorderBrush" Color="#66FFFFFF"/>
+    <SolidColorBrush x:Key="FilterCheckedForegroundBrush" Color="White"/>
+
+    <SolidColorBrush x:Key="ListViewItemBorderBrush" Color="#1AFFFFFF"/>
+    <SolidColorBrush x:Key="ListViewItemHoverBackgroundBrush" Color="#1AFFFFFF"/>
+    <SolidColorBrush x:Key="ListViewItemHoverBorderBrush" Color="#33FFFFFF"/>
+    
+    <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#44FFFFFF"/>
+
+    <!-- Context Menu Submenu Fixes (Overrides SystemColors) -->
+    <SolidColorBrush x:Key="{x:Static SystemColors.MenuBrushKey}" Color="#E61A1A1A"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.MenuBarBrushKey}" Color="#E61A1A1A"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.MenuTextBrushKey}" Color="White"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="#E61A1A1A"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="White"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#33FFFFFF"/>
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="White"/>
+</ResourceDictionary>
