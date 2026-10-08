@@ -90,7 +90,7 @@ namespace CustomClipboardManager.Tests
             RunTest("Test 46: Async Non-Blocking Clipboard Operations (No Thread.Sleep)", Test_NonBlockingAsyncClipboardRetries);
             RunTest("Test 47: Pure Emoji Classification & Historical Data Migration", Test_EmojiClassification_And_DataMigration);
             RunTest("Test 48: High-Performance Batch Deletion & Click-Outside System", Test_BatchDeletion_And_ClickOutside);
-            RunTest("Test 49: Clean Flat Window Borders & Zero Jagged Edge Artifacts", Test_CleanFlatWindowBorders_And_ZeroJaggedEdges);
+            RunTest("Test 49: Smooth Rounded Window Borders & Anti-Aliased Corner System", Test_SmoothRoundedWindowBorders_And_ZeroJaggedEdges);
             RunTest("Test 50: Marquee Drag-to-Select Mechanics in Trash / Selection Mode", Test_MarqueeDragToSelect_InTrashSelectionMode);
 
             Console.WriteLine("\n==========================================================");
@@ -2443,31 +2443,32 @@ namespace CustomClipboardManager.Tests
                 "MainWindow.xaml must bind backdrop click handlers on modals");
         }
 
-        private static void Test_CleanFlatWindowBorders_And_ZeroJaggedEdges()
+        private static void Test_SmoothRoundedWindowBorders_And_ZeroJaggedEdges()
         {
             string xamlPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "MainWindow.xaml");
             if (!File.Exists(xamlPath)) xamlPath = Path.Combine(Directory.GetCurrentDirectory(), "MainWindow.xaml");
             Assert(File.Exists(xamlPath), "MainWindow.xaml must exist");
             string xaml = File.ReadAllText(xamlPath);
 
-            // Verify clean flat corners with CornerRadius="0"
-            Assert(xaml.Contains("WindowChrome") && xaml.Contains("CornerRadius=\"0\""),
-                "WindowChrome must have CornerRadius=\"0\" to avoid jagged corner rendering");
-            Assert(xaml.Contains("x:Name=\"MainBorder\"") && xaml.Contains("CornerRadius=\"0\""),
-                "MainBorder must have CornerRadius=\"0\" for clean modern flat borders");
-            Assert(xaml.Contains("x:Name=\"ConfirmGrid\"") && xaml.Contains("CornerRadius=\"0\""),
-                "ConfirmGrid modal backdrop must have CornerRadius=\"0\"");
-            Assert(xaml.Contains("x:Name=\"HotkeySettingsGrid\"") && xaml.Contains("CornerRadius=\"0\""),
-                "HotkeySettingsGrid modal backdrop must have CornerRadius=\"0\"");
-            Assert(xaml.Contains("x:Name=\"PreviewGrid\"") && xaml.Contains("CornerRadius=\"0\""),
-                "PreviewGrid modal backdrop must have CornerRadius=\"0\"");
+            // Verify smooth rounded corners with CornerRadius="14" and GlassFrameThickness="-1"
+            Assert(xaml.Contains("WindowChrome") && xaml.Contains("GlassFrameThickness=\"-1\""),
+                "WindowChrome must have GlassFrameThickness=\"-1\" to enable smooth hardware anti-aliasing");
+            Assert(xaml.Contains("x:Name=\"MainBorder\"") && xaml.Contains("CornerRadius=\"14\""),
+                "MainBorder must have CornerRadius=\"14\" for beautiful smooth rounded corners");
+            Assert(xaml.Contains("x:Name=\"ConfirmGrid\"") && xaml.Contains("CornerRadius=\"14\""),
+                "ConfirmGrid modal backdrop must have CornerRadius=\"14\"");
+            Assert(xaml.Contains("x:Name=\"HotkeySettingsGrid\"") && xaml.Contains("CornerRadius=\"14\""),
+                "HotkeySettingsGrid modal backdrop must have CornerRadius=\"14\"");
+            Assert(xaml.Contains("x:Name=\"PreviewGrid\"") && xaml.Contains("CornerRadius=\"14\""),
+                "PreviewGrid modal backdrop must have CornerRadius=\"14\"");
 
             string csPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "MainWindow.xaml.cs");
             if (!File.Exists(csPath)) csPath = Path.Combine(Directory.GetCurrentDirectory(), "MainWindow.xaml.cs");
             Assert(File.Exists(csPath), "MainWindow.xaml.cs must exist");
             string cs = File.ReadAllText(csPath);
 
-            Assert(cs.Contains("DWMWCP_DONOTROUND = 1"), "Must define DWMWCP_DONOTROUND = 1 for clean rectangular borders");
+            Assert(cs.Contains("DwmExtendFrameIntoClientArea"), "Must call DwmExtendFrameIntoClientArea for smooth anti-aliased frame transparency");
+            Assert(cs.Contains("DWMWCP_ROUND = 2"), "Must define DWMWCP_ROUND = 2 for native DWM rounded corners");
             Assert(cs.Contains("SetWindowRgn(hwnd, IntPtr.Zero, true)"), "Must reset clipping region to IntPtr.Zero to eliminate jagged 1-bit staircase pixels");
         }
 

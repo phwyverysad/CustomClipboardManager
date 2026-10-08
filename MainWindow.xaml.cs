@@ -71,6 +71,18 @@ namespace CustomClipboardManager
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
 
         [System.Runtime.InteropServices.DllImport("dwmapi.dll")]
+        private static extern int DwmExtendFrameIntoClientArea(IntPtr hWnd, ref MARGINS pMarInset);
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct MARGINS
+        {
+            public int cxLeftWidth;
+            public int cxRightWidth;
+            public int cyTopHeight;
+            public int cyBottomHeight;
+        }
+
+        [System.Runtime.InteropServices.DllImport("dwmapi.dll")]
         private static extern int DwmIsCompositionEnabled(out bool pfEnabled);
 
         [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
@@ -450,14 +462,27 @@ namespace CustomClipboardManager
             _isHwndInitialized = true;
             _windowHwnd = hwnd;
 
-            // Configure clean, flat, modern rectangular corners
+            // Configure smooth rounded corners on Windows 11
             try
             {
                 if (Environment.OSVersion.Version.Major >= 10 && Environment.OSVersion.Version.Build >= 22000)
                 {
-                    int cornerPreference = DWMWCP_DONOTROUND; // Flat, clean, razor-sharp modern rectangular borders
+                    int cornerPreference = DWMWCP_ROUND; // Native smooth DWM rounded corners
                     DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref cornerPreference, sizeof(int));
                 }
+            }
+            catch { }
+
+            // Extend DWM frame into client area for smooth transparency outside MainBorder rounded corners
+            try
+            {
+                var src = System.Windows.Interop.HwndSource.FromHwnd(hwnd);
+                if (src != null && src.CompositionTarget != null)
+                {
+                    src.CompositionTarget.BackgroundColor = System.Windows.Media.Colors.Transparent;
+                }
+                var m = new MARGINS { cxLeftWidth = -1, cxRightWidth = -1, cyTopHeight = -1, cyBottomHeight = -1 };
+                DwmExtendFrameIntoClientArea(hwnd, ref m);
             }
             catch { }
 
@@ -704,7 +729,7 @@ namespace CustomClipboardManager
 
         private void MainWindow_Loaded(object? sender, RoutedEventArgs e)
         {
-            this.SetResourceReference(Window.BackgroundProperty, "AppBackgroundBrush");
+            this.Background = System.Windows.Media.Brushes.Transparent;
             UpdateRoundedCorners();
             ResetPreviewImmediate();
             ResetSearchAndScrollToLatest();
@@ -1133,11 +1158,24 @@ namespace CustomClipboardManager
 
                 if (Environment.OSVersion.Version.Major >= 10 && Environment.OSVersion.Version.Build >= 22000)
                 {
-                    int cornerPreference = DWMWCP_DONOTROUND;
+                    int cornerPreference = DWMWCP_ROUND; // Native smooth DWM rounded corners
                     DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref cornerPreference, sizeof(int));
                 }
 
-                // Remove any custom 1-bit clipped region so corners are razor-sharp, clean, and flat
+                // Ensure DWM frame extension for anti-aliased transparency
+                try
+                {
+                    var src = System.Windows.Interop.HwndSource.FromHwnd(hwnd);
+                    if (src != null && src.CompositionTarget != null)
+                    {
+                        src.CompositionTarget.BackgroundColor = System.Windows.Media.Colors.Transparent;
+                    }
+                    var m = new MARGINS { cxLeftWidth = -1, cxRightWidth = -1, cyTopHeight = -1, cyBottomHeight = -1 };
+                    DwmExtendFrameIntoClientArea(hwnd, ref m);
+                }
+                catch { }
+
+                // Clear any custom GDI 1-bit region clipping so curves are anti-aliased by vector pipeline
                 SetWindowRgn(hwnd, IntPtr.Zero, true);
             }
             catch (Exception ex)

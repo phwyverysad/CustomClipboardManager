@@ -8,7 +8,7 @@
         xmlns:conv="clr-namespace:CustomClipboardManager.Converters"
         mc:Ignorable="d"
         Title="Clipboard Manager" Height="595" Width="430" MinWidth="360" MinHeight="450"
-        WindowStyle="None" AllowsTransparency="False" Background="{DynamicResource AppBackgroundBrush}" ResizeMode="NoResize"
+        WindowStyle="None" AllowsTransparency="False" Background="Transparent" ResizeMode="NoResize"
         Topmost="True" ShowInTaskbar="False" Visibility="Hidden" ShowActivated="False"
         FontFamily="pack://application:,,,/Fonts/#IBM Plex Sans, ./Fonts/#IBM Plex Sans, IBM Plex Sans, pack://application:,,,/Fonts/#IBM Plex Sans Thai, ./Fonts/#IBM Plex Sans Thai, IBM Plex Sans Thai, Segoe UI Variable Text, Segoe UI Variable Display, Leelawadee UI, Segoe UI, sans-serif"
         TextOptions.TextFormattingMode="Display"
@@ -27,13 +27,13 @@
         <WindowChrome CaptionHeight="0"
                       ResizeBorderThickness="0"
                       CornerRadius="0"
-                      GlassFrameThickness="0"
+                      GlassFrameThickness="-1"
                       UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
 
     <Window.Style>
         <Style TargetType="Window">
-            <Setter Property="Background" Value="{DynamicResource AppBackgroundBrush}"/>
+            <Setter Property="Background" Value="Transparent"/>
         </Style>
     </Window.Style>
 
@@ -996,7 +996,7 @@
         </Style>
     </Window.Resources>
 
-    <Border x:Name="MainBorder" Background="{DynamicResource AppBackgroundBrush}" CornerRadius="0" BorderThickness="1" BorderBrush="{DynamicResource AppBorderBrush}" Margin="0" Opacity="0">
+    <Border x:Name="MainBorder" Background="{DynamicResource AppBackgroundBrush}" CornerRadius="14" BorderThickness="1" BorderBrush="{DynamicResource AppBorderBrush}" Margin="0" Opacity="0">
         <Grid>
             <!-- Scope adorners (focus visuals, etc.) to main content so they never bleed over modal overlays -->
             <AdornerDecorator>
@@ -1847,7 +1847,7 @@
             </Border>
         </Grid>
 
-        <Border x:Name="ConfirmGrid" Visibility="Collapsed" Background="{DynamicResource ModalBackdropBrush}" Opacity="0" CornerRadius="0" MouseDown="ConfirmBackdrop_MouseDown">
+        <Border x:Name="ConfirmGrid" Visibility="Collapsed" Background="{DynamicResource ModalBackdropBrush}" Opacity="0" CornerRadius="14" MouseDown="ConfirmBackdrop_MouseDown">
             <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Width="300"
                   SnapsToDevicePixels="True" UseLayoutRounding="True">
                 <Border Background="{DynamicResource CardBackgroundBrush}" CornerRadius="14">
@@ -1874,7 +1874,7 @@
         </Border>
 
         <!-- Hotkey Settings Modal Overlay (Crisp, Razor-Sharp Fluent Card) -->
-        <Border x:Name="HotkeySettingsGrid" Visibility="Collapsed" Background="{DynamicResource ModalBackdropBrush}" Opacity="0" CornerRadius="0" MouseDown="HotkeySettingsBackdrop_MouseDown">
+        <Border x:Name="HotkeySettingsGrid" Visibility="Collapsed" Background="{DynamicResource ModalBackdropBrush}" Opacity="0" CornerRadius="14" MouseDown="HotkeySettingsBackdrop_MouseDown">
             <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Width="396"
                   SnapsToDevicePixels="True" UseLayoutRounding="True">
                 <!-- Drop shadow layer (pure background border, zero impact on ClearType / text sharpness) -->
@@ -2024,7 +2024,7 @@
         </Border>
 
         <!-- Fluent Quick Look & Detailed Inspection Modal -->
-        <Border x:Name="PreviewGrid" Visibility="Collapsed" Background="{DynamicResource ModalBackdropBrush}" Opacity="0" CornerRadius="0" MouseDown="PreviewBackdrop_MouseDown">
+        <Border x:Name="PreviewGrid" Visibility="Collapsed" Background="{DynamicResource ModalBackdropBrush}" Opacity="0" CornerRadius="14" MouseDown="PreviewBackdrop_MouseDown">
             <Border x:Name="PreviewBorder"
                     Width="414" Height="565"
                     Margin="8"
