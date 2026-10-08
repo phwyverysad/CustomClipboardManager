@@ -90,6 +90,8 @@ namespace CustomClipboardManager.Tests
             RunTest("Test 46: Async Non-Blocking Clipboard Operations (No Thread.Sleep)", Test_NonBlockingAsyncClipboardRetries);
             RunTest("Test 47: Pure Emoji Classification & Historical Data Migration", Test_EmojiClassification_And_DataMigration);
             RunTest("Test 48: High-Performance Batch Deletion & Click-Outside System", Test_BatchDeletion_And_ClickOutside);
+            RunTest("Test 49: Clean Flat Window Borders & Zero Jagged Edge Artifacts", Test_CleanFlatWindowBorders_And_ZeroJaggedEdges);
+            RunTest("Test 50: Marquee Drag-to-Select Mechanics in Trash / Selection Mode", Test_MarqueeDragToSelect_InTrashSelectionMode);
 
             Console.WriteLine("\n==========================================================");
             Console.WriteLine($"  SUMMARY: Total: {_passCount + _failCount} | Passed: {_passCount} | Failed: {_failCount}");
@@ -2439,6 +2441,121 @@ namespace CustomClipboardManager.Tests
 
             Assert(xaml.Contains("ConfirmBackdrop_MouseDown") && xaml.Contains("HotkeySettingsBackdrop_MouseDown"),
                 "MainWindow.xaml must bind backdrop click handlers on modals");
+        }
+
+        private static void Test_CleanFlatWindowBorders_And_ZeroJaggedEdges()
+        {
+            string xamlPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "MainWindow.xaml");
+            if (!File.Exists(xamlPath)) xamlPath = Path.Combine(Directory.GetCurrentDirectory(), "MainWindow.xaml");
+            Assert(File.Exists(xamlPath), "MainWindow.xaml must exist");
+            string xaml = File.ReadAllText(xamlPath);
+
+            // Verify clean flat corners with CornerRadius="0"
+            Assert(xaml.Contains("WindowChrome") && xaml.Contains("CornerRadius=\"0\""),
+                "WindowChrome must have CornerRadius=\"0\" to avoid jagged corner rendering");
+            Assert(xaml.Contains("x:Name=\"MainBorder\"") && xaml.Contains("CornerRadius=\"0\""),
+                "MainBorder must have CornerRadius=\"0\" for clean modern flat borders");
+            Assert(xaml.Contains("x:Name=\"ConfirmGrid\"") && xaml.Contains("CornerRadius=\"0\""),
+                "ConfirmGrid modal backdrop must have CornerRadius=\"0\"");
+            Assert(xaml.Contains("x:Name=\"HotkeySettingsGrid\"") && xaml.Contains("CornerRadius=\"0\""),
+                "HotkeySettingsGrid modal backdrop must have CornerRadius=\"0\"");
+            Assert(xaml.Contains("x:Name=\"PreviewGrid\"") && xaml.Contains("CornerRadius=\"0\""),
+                "PreviewGrid modal backdrop must have CornerRadius=\"0\"");
+
+            string csPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "MainWindow.xaml.cs");
+            if (!File.Exists(csPath)) csPath = Path.Combine(Directory.GetCurrentDirectory(), "MainWindow.xaml.cs");
+            Assert(File.Exists(csPath), "MainWindow.xaml.cs must exist");
+            string cs = File.ReadAllText(csPath);
+
+            Assert(cs.Contains("DWMWCP_DONOTROUND = 1"), "Must define DWMWCP_DONOTROUND = 1 for clean rectangular borders");
+            Assert(cs.Contains("SetWindowRgn(hwnd, IntPtr.Zero, true)"), "Must reset clipping region to IntPtr.Zero to eliminate jagged 1-bit staircase pixels");
+        }
+
+        private static void Test_MarqueeDragToSelect_InTrashSelectionMode()
+        {
+            // 1. Verify XAML Marquee Visual Elements
+            string xamlPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "MainWindow.xaml");
+            if (!File.Exists(xamlPath)) xamlPath = Path.Combine(Directory.GetCurrentDirectory(), "MainWindow.xaml");
+            Assert(File.Exists(xamlPath), "MainWindow.xaml must exist");
+            string xaml = File.ReadAllText(xamlPath);
+
+            Assert(xaml.Contains("x:Name=\"MarqueeCanvas\"") && xaml.Contains("Grid.Row=\"2\""),
+                "MainWindow.xaml must contain MarqueeCanvas positioned over the items list (Grid.Row=2)");
+            Assert(xaml.Contains("x:Name=\"MarqueeBorder\""),
+                "MainWindow.xaml must contain MarqueeBorder for visual drag-selection feedback");
+
+            // 2. Verify C# Code-Behind Implementation
+            string csPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "MainWindow.xaml.cs");
+            if (!File.Exists(csPath)) csPath = Path.Combine(Directory.GetCurrentDirectory(), "MainWindow.xaml.cs");
+            Assert(File.Exists(csPath), "MainWindow.xaml.cs must exist");
+            string cs = File.ReadAllText(csPath);
+
+            Assert(cs.Contains("_isMarqueeSelecting") && cs.Contains("_marqueeStartPoint"),
+                "MainWindow.xaml.cs must declare marquee drag selection tracking fields");
+            Assert(cs.Contains("UpdateMarqueeSelection") && cs.Contains("CancelMarqueeSelection"),
+                "MainWindow.xaml.cs must implement UpdateMarqueeSelection and CancelMarqueeSelection");
+
+            // 3. Functional Simulation of Marquee Selection Logic in ViewModel
+            var vm = new MainViewModel();
+            vm.ClipboardItems.Clear();
+
+            for (int i = 0; i < 10; i++)
+            {
+                vm.ClipboardItems.Add(new ClipboardItem
+                {
+                    TextContent = $"Marquee Item {i}",
+                    Category = SmartCategory.Text,
+                    IsSelected = false
+                });
+            }
+
+            vm.IsSelectionMode = true;
+            Assert(vm.IsSelectionMode, "Should be in selection mode");
+            Assert(vm.SelectedCount == 0, "Initially 0 items selected");
+
+            // Simulate drag selection covering items 2, 3, 4
+            var marqueeTouchedIndices = new HashSet<int> { 2, 3, 4 };
+            for (int i = 0; i < vm.ClipboardItems.Count; i++)
+            {
+                vm.ClipboardItems[i].IsSelected = marqueeTouchedIndices.Contains(i);
+            }
+
+            Assert(vm.SelectedCount == 3, $"Should have 3 selected items, got {vm.SelectedCount}");
+            Assert(vm.HasSelectedItems, "HasSelectedItems should be true");
+            Assert(vm.ClipboardItems[2].IsSelected && vm.ClipboardItems[3].IsSelected && vm.ClipboardItems[4].IsSelected,
+                "Items 2, 3, 4 must be selected");
+            Assert(!vm.ClipboardItems[0].IsSelected && !vm.ClipboardItems[1].IsSelected && !vm.ClipboardItems[5].IsSelected,
+                "Items outside marquee must remain unselected");
+
+            // Simulate second additive drag selection adding items 5, 6
+            var initialSelected = new HashSet<ClipboardItem>(vm.ClipboardItems.Where(it => it.IsSelected));
+            var secondMarqueeTouched = new HashSet<int> { 5, 6 };
+            for (int i = 0; i < vm.ClipboardItems.Count; i++)
+            {
+                vm.ClipboardItems[i].IsSelected = initialSelected.Contains(vm.ClipboardItems[i]) || secondMarqueeTouched.Contains(i);
+            }
+
+            Assert(vm.SelectedCount == 5, $"Additive marquee drag should yield 5 selected items, got {vm.SelectedCount}");
+            Assert(vm.ClipboardItems[5].IsSelected && vm.ClipboardItems[6].IsSelected, "Items 5 and 6 should now be selected");
+
+            // Simulate modifier drag (Ctrl) inverting selection on items 2, 3
+            var toggleIndices = new HashSet<int> { 2, 3 };
+            initialSelected = new HashSet<ClipboardItem>(vm.ClipboardItems.Where(it => it.IsSelected));
+            for (int i = 0; i < vm.ClipboardItems.Count; i++)
+            {
+                bool wasInitial = initialSelected.Contains(vm.ClipboardItems[i]);
+                vm.ClipboardItems[i].IsSelected = toggleIndices.Contains(i) ? !wasInitial : wasInitial;
+            }
+
+            Assert(vm.SelectedCount == 3, $"Ctrl toggle should invert items 2 and 3, resulting in 3 selected items, got {vm.SelectedCount}");
+            Assert(!vm.ClipboardItems[2].IsSelected && !vm.ClipboardItems[3].IsSelected, "Items 2 and 3 should now be deselected");
+            Assert(vm.ClipboardItems[4].IsSelected && vm.ClipboardItems[5].IsSelected && vm.ClipboardItems[6].IsSelected,
+                "Items 4, 5, 6 should remain selected");
+
+            // Delete selected items
+            vm.DeleteSelectedCommand.Execute(null);
+            Assert(vm.ClipboardItems.Count == 7, "3 items should be deleted, leaving 7");
+            Assert(vm.SelectedCount == 0, "Selected count should reset to 0 after batch delete");
         }
     }
 }

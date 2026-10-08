@@ -26,7 +26,7 @@
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="0"
                       ResizeBorderThickness="0"
-                      CornerRadius="16"
+                      CornerRadius="0"
                       GlassFrameThickness="0"
                       UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
@@ -996,7 +996,7 @@
         </Style>
     </Window.Resources>
 
-    <Border x:Name="MainBorder" Background="{DynamicResource AppBackgroundBrush}" CornerRadius="18" BorderThickness="1" BorderBrush="{DynamicResource AppBorderBrush}" Margin="0" Opacity="0">
+    <Border x:Name="MainBorder" Background="{DynamicResource AppBackgroundBrush}" CornerRadius="0" BorderThickness="1" BorderBrush="{DynamicResource AppBorderBrush}" Margin="0" Opacity="0">
         <Grid>
             <!-- Scope adorners (focus visuals, etc.) to main content so they never bleed over modal overlays -->
             <AdornerDecorator>
@@ -1821,6 +1821,16 @@
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
+
+            <!-- Marquee Selection Overlay for Trash / Selection Mode -->
+            <Canvas x:Name="MarqueeCanvas" Grid.Row="2" IsHitTestVisible="False" ClipToBounds="True">
+                <Border x:Name="MarqueeBorder"
+                        Background="#260078D7"
+                        BorderBrush="{DynamicResource AccentBrush}"
+                        BorderThickness="1"
+                        CornerRadius="3"
+                        Visibility="Collapsed"/>
+            </Canvas>
         </Grid>
         </AdornerDecorator>
 
@@ -1837,7 +1847,7 @@
             </Border>
         </Grid>
 
-        <Border x:Name="ConfirmGrid" Visibility="Collapsed" Background="{DynamicResource ModalBackdropBrush}" Opacity="0" CornerRadius="18" MouseDown="ConfirmBackdrop_MouseDown">
+        <Border x:Name="ConfirmGrid" Visibility="Collapsed" Background="{DynamicResource ModalBackdropBrush}" Opacity="0" CornerRadius="0" MouseDown="ConfirmBackdrop_MouseDown">
             <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Width="300"
                   SnapsToDevicePixels="True" UseLayoutRounding="True">
                 <Border Background="{DynamicResource CardBackgroundBrush}" CornerRadius="14">
@@ -1864,7 +1874,7 @@
         </Border>
 
         <!-- Hotkey Settings Modal Overlay (Crisp, Razor-Sharp Fluent Card) -->
-        <Border x:Name="HotkeySettingsGrid" Visibility="Collapsed" Background="{DynamicResource ModalBackdropBrush}" Opacity="0" CornerRadius="18" MouseDown="HotkeySettingsBackdrop_MouseDown">
+        <Border x:Name="HotkeySettingsGrid" Visibility="Collapsed" Background="{DynamicResource ModalBackdropBrush}" Opacity="0" CornerRadius="0" MouseDown="HotkeySettingsBackdrop_MouseDown">
             <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Width="396"
                   SnapsToDevicePixels="True" UseLayoutRounding="True">
                 <!-- Drop shadow layer (pure background border, zero impact on ClearType / text sharpness) -->
@@ -2014,7 +2024,7 @@
         </Border>
 
         <!-- Fluent Quick Look & Detailed Inspection Modal -->
-        <Border x:Name="PreviewGrid" Visibility="Collapsed" Background="{DynamicResource ModalBackdropBrush}" Opacity="0" CornerRadius="18" MouseDown="PreviewBackdrop_MouseDown">
+        <Border x:Name="PreviewGrid" Visibility="Collapsed" Background="{DynamicResource ModalBackdropBrush}" Opacity="0" CornerRadius="0" MouseDown="PreviewBackdrop_MouseDown">
             <Border x:Name="PreviewBorder"
                     Width="414" Height="565"
                     Margin="8"

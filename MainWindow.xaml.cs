@@ -142,6 +142,7 @@ namespace CustomClipboardManager
 
 
         private const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+        private const int DWMWCP_DONOTROUND = 1;
         private const int DWMWCP_ROUND = 2;
 
         [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto, SetLastError = true)]
@@ -449,12 +450,12 @@ namespace CustomClipboardManager
             _isHwndInitialized = true;
             _windowHwnd = hwnd;
 
-            // Enable native smooth DWM rounding on Windows 11
+            // Configure clean, flat, modern rectangular corners
             try
             {
                 if (Environment.OSVersion.Version.Major >= 10 && Environment.OSVersion.Version.Build >= 22000)
                 {
-                    int cornerPreference = DWMWCP_ROUND; // Native rounded corners on Windows 11
+                    int cornerPreference = DWMWCP_DONOTROUND; // Flat, clean, razor-sharp modern rectangular borders
                     DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref cornerPreference, sizeof(int));
                 }
             }
@@ -1132,26 +1133,12 @@ namespace CustomClipboardManager
 
                 if (Environment.OSVersion.Version.Major >= 10 && Environment.OSVersion.Version.Build >= 22000)
                 {
-                    int cornerPreference = DWMWCP_ROUND;
+                    int cornerPreference = DWMWCP_DONOTROUND;
                     DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref cornerPreference, sizeof(int));
                 }
-                else
-                {
-                    var dpi = System.Windows.Media.VisualTreeHelper.GetDpi(this);
-                    double w = this.ActualWidth > 0 ? this.ActualWidth : (double.IsNaN(this.Width) ? 430 : this.Width);
-                    double h = this.ActualHeight > 0 ? this.ActualHeight : (double.IsNaN(this.Height) ? 595 : this.Height);
-                    int pixelWidth = (int)Math.Round(w * (dpi.DpiScaleX > 0 ? dpi.DpiScaleX : 1.0));
-                    int pixelHeight = (int)Math.Round(h * (dpi.DpiScaleY > 0 ? dpi.DpiScaleY : 1.0));
-                    int radius = (int)Math.Round(18 * (dpi.DpiScaleX > 0 ? dpi.DpiScaleX : 1.0));
-                    if (pixelWidth > 0 && pixelHeight > 0)
-                    {
-                        IntPtr hRgn = CreateRoundRectRgn(0, 0, pixelWidth + 1, pixelHeight + 1, radius * 2, radius * 2);
-                        if (hRgn != IntPtr.Zero)
-                        {
-                            SetWindowRgn(hwnd, hRgn, true);
-                        }
-                    }
-                }
+
+                // Remove any custom 1-bit clipped region so corners are razor-sharp, clean, and flat
+                SetWindowRgn(hwnd, IntPtr.Zero, true);
             }
             catch (Exception ex)
             {
@@ -1640,6 +1627,7 @@ namespace CustomClipboardManager
         private void HideWindowAnimated()
         {
             _outsideClickTimer?.Stop();
+            CancelMarqueeSelection();
             ResetPreviewImmediate();
             if (_viewModel != null && _viewModel.IsSelectionMode)
             {
@@ -2192,6 +2180,16 @@ namespace CustomClipboardManager
                 if (e.Key == Key.Escape)
                 {
                     e.Handled = true;
+                    if (_isMarqueeSelecting)
+                    {
+                        CancelMarqueeSelection();
+                        foreach (var item in _viewModel.ClipboardItems)
+                        {
+                            item.IsSelected = _marqueeInitialSelection.Contains(item);
+                        }
+                        _viewModel.UpdateSelectionState();
+                        return;
+                    }
                     _viewModel.IsSelectionMode = false;
                     return;
                 }
@@ -2721,6 +2719,7 @@ namespace CustomClipboardManager
                 _isMovingWindow = false;
                 CheckAndDockToEdge();
             }
+            CancelMarqueeSelection();
         }
 
         private void SearchBox_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -2849,6 +2848,9 @@ namespace CustomClipboardManager
         private System.Windows.Point? _dragStartPoint = null;
         private bool _isDragging = false;
         private ClipboardItem? _dragTargetItem = null;
+        private System.Windows.Point? _marqueeStartPoint = null;
+        private bool _isMarqueeSelecting = false;
+        private HashSet<ClipboardItem> _marqueeInitialSelection = new HashSet<ClipboardItem>();
 
         private void ItemsListView_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
@@ -2856,13 +2858,61 @@ namespace CustomClipboardManager
             _dragStartPoint = null;
             _isDragging = false;
             _dragTargetItem = null;
-            
+            _isMarqueeSelecting = false;
+            _marqueeStartPoint = null;
+
             DependencyObject dep = (DependencyObject)e.OriginalSource;
+            bool isScrollBarOrThumb = false;
+            bool isDirectButton = false;
+
+            DependencyObject temp = dep;
+            while (temp != null && temp != ItemsListView)
+            {
+                if (temp is System.Windows.Controls.Primitives.ScrollBar || temp is System.Windows.Controls.Primitives.Thumb)
+                {
+                    isScrollBarOrThumb = true;
+                    break;
+                }
+                if (temp is System.Windows.Controls.Primitives.ButtonBase)
+                {
+                    isDirectButton = true;
+                    break;
+                }
+                temp = System.Windows.Media.VisualTreeHelper.GetParent(temp) ?? LogicalTreeHelper.GetParent(temp);
+            }
+
+            if (isScrollBarOrThumb)
+            {
+                return;
+            }
+
+            if (_viewModel.IsSelectionMode)
+            {
+                _marqueeStartPoint = e.GetPosition(ItemsListView);
+                _marqueeInitialSelection = new HashSet<ClipboardItem>(_viewModel.ClipboardItems.Where(i => i.IsSelected));
+
+                if (!isDirectButton)
+                {
+                    DependencyObject itemDep = dep;
+                    while (itemDep != null && itemDep != ItemsListView)
+                    {
+                        if (itemDep is System.Windows.Controls.ListViewItem lvi && lvi.DataContext is ClipboardItem item)
+                        {
+                            _dragStartPoint = e.GetPosition(null);
+                            _dragTargetItem = item;
+                            _pressedListViewItem = lvi;
+                            lvi.SetValue(IsItemPressedProperty, true);
+                            break;
+                        }
+                        itemDep = System.Windows.Media.VisualTreeHelper.GetParent(itemDep) ?? LogicalTreeHelper.GetParent(itemDep);
+                    }
+                }
+                return;
+            }
+
             while (dep != null && dep != ItemsListView)
             {
-                if (dep is System.Windows.Controls.Primitives.ButtonBase ||
-                    dep is System.Windows.Controls.Primitives.Thumb ||
-                    dep is System.Windows.Controls.Primitives.ScrollBar)
+                if (dep is System.Windows.Controls.Primitives.ButtonBase)
                 {
                     return;
                 }
@@ -2888,9 +2938,104 @@ namespace CustomClipboardManager
             }
         }
 
+        private void UpdateMarqueeSelection(System.Windows.Rect marqueeRect, bool isModifierDown)
+        {
+            if (_viewModel == null || ItemsListView == null) return;
+
+            for (int i = 0; i < ItemsListView.Items.Count; i++)
+            {
+                if (ItemsListView.ItemContainerGenerator.ContainerFromIndex(i) is System.Windows.Controls.ListViewItem lvi && lvi.IsVisible)
+                {
+                    if (ItemsListView.Items[i] is ClipboardItem item)
+                    {
+                        try
+                        {
+                            System.Windows.Media.GeneralTransform transform = lvi.TransformToAncestor(ItemsListView);
+                            System.Windows.Point topLeft = transform.Transform(new System.Windows.Point(0, 0));
+                            System.Windows.Rect itemBounds = new System.Windows.Rect(topLeft.X, topLeft.Y, lvi.ActualWidth, lvi.ActualHeight);
+
+                            bool inMarquee = marqueeRect.IntersectsWith(itemBounds);
+                            bool shouldBeSelected;
+
+                            if (isModifierDown)
+                            {
+                                bool wasInitial = _marqueeInitialSelection.Contains(item);
+                                shouldBeSelected = inMarquee ? !wasInitial : wasInitial;
+                            }
+                            else
+                            {
+                                shouldBeSelected = _marqueeInitialSelection.Contains(item) || inMarquee;
+                            }
+
+                            if (item.IsSelected != shouldBeSelected)
+                            {
+                                item.IsSelected = shouldBeSelected;
+                            }
+                        }
+                        catch
+                        {
+                        }
+                    }
+                }
+            }
+        }
+
         private void ItemsListView_PreviewMouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            if (_viewModel.IsSelectionMode) return;
+            if (_viewModel.IsSelectionMode)
+            {
+                if (e.LeftButton == MouseButtonState.Pressed && _marqueeStartPoint.HasValue)
+                {
+                    System.Windows.Point currentPos = e.GetPosition(ItemsListView);
+                    System.Windows.Vector diff = currentPos - _marqueeStartPoint.Value;
+
+                    if (!_isMarqueeSelecting)
+                    {
+                        if (Math.Abs(diff.X) > 4 || Math.Abs(diff.Y) > 4)
+                        {
+                            _isMarqueeSelecting = true;
+                            ClearPressedListViewItem();
+                            _dragTargetItem = null;
+                            ItemsListView.CaptureMouse();
+                            if (MarqueeBorder != null)
+                            {
+                                MarqueeBorder.Visibility = Visibility.Visible;
+                            }
+                        }
+                    }
+
+                    if (_isMarqueeSelecting && MarqueeBorder != null)
+                    {
+                        var sv = GetScrollViewer(ItemsListView);
+                        if (sv != null)
+                        {
+                            if (currentPos.Y < 24)
+                            {
+                                sv.ScrollToVerticalOffset(sv.VerticalOffset - 12);
+                            }
+                            else if (currentPos.Y > ItemsListView.ActualHeight - 24)
+                            {
+                                sv.ScrollToVerticalOffset(sv.VerticalOffset + 12);
+                            }
+                        }
+
+                        double x = Math.Max(0, Math.Min(_marqueeStartPoint.Value.X, currentPos.X));
+                        double y = Math.Max(0, Math.Min(_marqueeStartPoint.Value.Y, currentPos.Y));
+                        double width = Math.Min(Math.Abs(currentPos.X - _marqueeStartPoint.Value.X), Math.Max(0, ItemsListView.ActualWidth - x));
+                        double height = Math.Min(Math.Abs(currentPos.Y - _marqueeStartPoint.Value.Y), Math.Max(0, ItemsListView.ActualHeight - y));
+
+                        System.Windows.Controls.Canvas.SetLeft(MarqueeBorder, x);
+                        System.Windows.Controls.Canvas.SetTop(MarqueeBorder, y);
+                        MarqueeBorder.Width = width;
+                        MarqueeBorder.Height = height;
+
+                        System.Windows.Rect marqueeRect = new System.Windows.Rect(x, y, width, height);
+                        bool isModifierDown = Keyboard.Modifiers.HasFlag(ModifierKeys.Control) || Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+                        UpdateMarqueeSelection(marqueeRect, isModifierDown);
+                    }
+                }
+                return;
+            }
 
             if (e.LeftButton == MouseButtonState.Pressed && _dragStartPoint.HasValue && _dragTargetItem != null && !_isDragging)
             {
@@ -3092,18 +3237,57 @@ namespace CustomClipboardManager
         {
             ClearPressedListViewItem();
 
+            if (_viewModel.IsSelectionMode)
+            {
+                if (_isMarqueeSelecting)
+                {
+                    _isMarqueeSelecting = false;
+                    _marqueeStartPoint = null;
+                    if (MarqueeBorder != null)
+                    {
+                        MarqueeBorder.Visibility = Visibility.Collapsed;
+                        MarqueeBorder.Width = 0;
+                        MarqueeBorder.Height = 0;
+                    }
+
+                    if (ItemsListView.IsMouseCaptured)
+                    {
+                        ItemsListView.ReleaseMouseCapture();
+                    }
+
+                    _viewModel.UpdateSelectionState();
+                    e.Handled = true;
+                    return;
+                }
+
+                _marqueeStartPoint = null;
+                if (ItemsListView.IsMouseCaptured)
+                {
+                    ItemsListView.ReleaseMouseCapture();
+                }
+
+                if (_dragTargetItem != null)
+                {
+                    var itemToToggle = _dragTargetItem;
+                    _dragStartPoint = null;
+                    _dragTargetItem = null;
+                    _isDragging = false;
+                    itemToToggle.IsSelected = !itemToToggle.IsSelected;
+                    return;
+                }
+
+                _dragStartPoint = null;
+                _dragTargetItem = null;
+                _isDragging = false;
+                return;
+            }
+
             if (!_isDragging && _dragTargetItem != null)
             {
                 var itemToPaste = _dragTargetItem;
                 _dragStartPoint = null;
                 _dragTargetItem = null;
                 _isDragging = false;
-
-                if (_viewModel.IsSelectionMode)
-                {
-                    itemToPaste.IsSelected = !itemToPaste.IsSelected;
-                    return;
-                }
 
                 _viewModel.PasteItemCommand.Execute(itemToPaste);
                 return;
@@ -3112,6 +3296,26 @@ namespace CustomClipboardManager
             _dragStartPoint = null;
             _dragTargetItem = null;
             _isDragging = false;
+        }
+
+        private void CancelMarqueeSelection()
+        {
+            if (_isMarqueeSelecting)
+            {
+                _isMarqueeSelecting = false;
+                _marqueeStartPoint = null;
+                if (MarqueeBorder != null)
+                {
+                    MarqueeBorder.Visibility = Visibility.Collapsed;
+                    MarqueeBorder.Width = 0;
+                    MarqueeBorder.Height = 0;
+                }
+                if (ItemsListView.IsMouseCaptured)
+                {
+                    ItemsListView.ReleaseMouseCapture();
+                }
+                _viewModel?.UpdateSelectionState();
+            }
         }
 
         private bool _isDocked;
