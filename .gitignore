@@ -6,3 +6,9 @@ obj/
 *.userosscache
 *.sln.docstates
 Thumbs.db
+crash.log
+scratch/
+installer_output/
+*.png
+Clipboard _WebSetup.exe
+Clipboard_WebSetup.exe

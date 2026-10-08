@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Windows.Data;
+using Wpf.Ui.Controls;
 
 namespace CustomClipboardManager
 {
@@ -10,12 +11,13 @@ namespace CustomClipboardManager
         {
             if (value is bool isDarkMode)
             {
-                // Return Sun icon for dark mode (to switch to light), and Moon icon for light mode (to switch to dark)
-                // Actually, Windows convention is the icon represents the CURRENT state or the TARGET state.
-                // Let's use Moon for Dark Mode, Sun for Light Mode.
-                return isDarkMode ? "\uE708" : "\uE706"; // E708 is Sun, E706 is Moon
+                if (targetType == typeof(SymbolRegular))
+                {
+                    return isDarkMode ? SymbolRegular.WeatherSunny24 : SymbolRegular.WeatherMoon24;
+                }
+                return isDarkMode ? "\uE708" : "\uE706";
             }
-            return "\uE708";
+            return targetType == typeof(SymbolRegular) ? SymbolRegular.WeatherSunny24 : "\uE708";
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>Clipboard_WebSetup</AssemblyName>
+    <RootNamespace>ClipboardWebSetup</RootNamespace>
+    <StartupObject>ClipboardWebSetup.App</StartupObject>
+    <LangVersion>latest</LangVersion>
+    <ApplicationIcon>Clipboard.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.ServiceProcess" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Payload.zip">
+      <LogicalName>Payload.zip</LogicalName>
+    </EmbeddedResource>
+    <Resource Include="Clipboard.ico" />
+  </ItemGroup>
+
+</Project>

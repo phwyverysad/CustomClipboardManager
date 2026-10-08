@@ -17,25 +17,47 @@ namespace CustomClipboardManager.Core
 
         private const int WM_CLIPBOARDUPDATE = 0x031D;
 
-        private HwndSource _hwndSource;
+        private HwndSource? _hwndSource;
         private Window _window;
 
-        public event EventHandler ClipboardChanged;
+        public event EventHandler? ClipboardChanged;
 
         public ClipboardMonitor(Window window)
         {
             _window = window;
-            _window.SourceInitialized += OnSourceInitialized;
+            var helper = new WindowInteropHelper(_window);
+            if (helper.Handle != IntPtr.Zero)
+            {
+                Attach(helper.Handle);
+            }
+            else
+            {
+                _window.SourceInitialized += OnSourceInitialized;
+            }
         }
 
-        private void OnSourceInitialized(object sender, EventArgs e)
+        private void OnSourceInitialized(object? sender, EventArgs e)
         {
-            _hwndSource = PresentationSource.FromVisual(_window) as HwndSource;
-            if (_hwndSource != null)
+            var helper = new WindowInteropHelper(_window);
+            if (helper.Handle != IntPtr.Zero)
             {
-                _hwndSource.AddHook(HwndHook);
-                AddClipboardFormatListener(_hwndSource.Handle);
+                Attach(helper.Handle);
             }
+        }
+
+        private void Attach(IntPtr hwnd)
+        {
+            if (_hwndSource != null || hwnd == IntPtr.Zero) return;
+            try
+            {
+                _hwndSource = HwndSource.FromHwnd(hwnd);
+                if (_hwndSource != null)
+                {
+                    _hwndSource.AddHook(HwndHook);
+                    AddClipboardFormatListener(hwnd);
+                }
+            }
+            catch { }
         }
 
         private IntPtr HwndHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -53,7 +75,7 @@ namespace CustomClipboardManager.Core
             {
                 RemoveClipboardFormatListener(_hwndSource.Handle);
                 _hwndSource.RemoveHook(HwndHook);
-                _hwndSource.Dispose();
+                _hwndSource = null;
             }
         }
     }
